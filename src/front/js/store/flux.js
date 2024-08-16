@@ -13,12 +13,34 @@ const getState = ({ getStore, getActions, setStore }) => {
 					background: "white",
 					initial: "white"
 				}
-			]
+			],
+			token: null,
+			user: null,
 		},
 		actions: {
 			// Use getActions to call a function within a fuction
 			exampleFunction: () => {
 				getActions().changeColor(0, "green");
+			},
+
+			handleLogin: async (email, password) => {
+				let response = await fetch(process.env.BACKEND_URL + "/login", {
+					headers: { "Content-Type": "application/json" }, body: JSON.stringify({email: email, password: password}), method: "POST"
+				}) 
+				let data = await response.json()
+				if (response.ok){
+				setStore({token: data, user: email})
+				}
+			},
+
+			getUser: async () => {
+				let store = getStore()
+				let response = await fetch(process.env.BACKEND_URL + "/private", {
+					headers: { "Content-Type": "application/json", Authorization: "Bearer " + store.token }, method: "GET"
+				})
+				let data = await response.json()
+				setStore({user: data})
+				// still need to add the auto navigate to /private
 			},
 
 			getMessage: async () => {
@@ -33,19 +55,12 @@ const getState = ({ getStore, getActions, setStore }) => {
 					console.log("Error loading message from backend", error)
 				}
 			},
-			changeColor: (index, color) => {
-				//get the store
-				const store = getStore();
-
-				//we have to loop the entire demo array to look for the respective index
-				//and change its color
-				const demo = store.demo.map((elm, i) => {
-					if (i === index) elm.background = color;
-					return elm;
-				});
-
-				//reset the global store
-				setStore({ demo: demo });
+			handleSignout: async () => {
+				
+					setStore({user: null, token: null})
+					localStorage.removeItem('token')
+					actions.getUser()
+				
 			}
 		}
 	};
